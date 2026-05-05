@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VRChat BPlayer Proxy - 设置</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23fb7299'/><text x='16' y='23' text-anchor='middle' fill='white' font-size='20' font-weight='bold' font-family='Arial'>B</text></svg>">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; }
+        .header { background: #16213e; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a4a; }
+        .header h1 { font-size: 18px; color: #fb7299; }
+        .nav a { color: #aaa; text-decoration: none; margin-left: 20px; font-size: 14px; }
+        .nav a:hover, .nav a.active { color: #fb7299; }
+        .content { max-width: 800px; margin: 0 auto; padding: 24px; }
+        .card { background: #16213e; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+        .card h2 { font-size: 16px; margin-bottom: 20px; color: #fb7299; border-bottom: 1px solid #2a2a4a; padding-bottom: 12px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; color: #888; margin-bottom: 6px; }
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group input[type="password"],
+        .form-group select { width: 100%; padding: 10px 14px; background: #0f3460; border: 1px solid #2a2a4a; border-radius: 8px; color: #e0e0e0; font-size: 14px; font-family: inherit; transition: border-color 0.2s; }
+        .form-group input:focus,
+        .form-group select:focus { outline: none; border-color: #fb7299; }
+        .form-group select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path fill='%23888' d='M6 8L1 3h10z'/></svg>"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
+        .form-group select option { background: #16213e; color: #e0e0e0; }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; }
+        .checkbox-group input[type="checkbox"] { width: 18px; height: 18px; accent-color: #fb7299; cursor: pointer; }
+        .checkbox-group label { color: #bbb; font-size: 14px; cursor: pointer; margin: 0; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+        .btn { display: inline-block; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-family: inherit; transition: all 0.2s; font-weight: 500; }
+        .btn-primary { background: #fb7299; color: white; }
+        .btn-primary:hover { background: #e06080; }
+        .btn-danger { background: #c62828; color: white; }
+        .btn-danger:hover { background: #b71c1c; }
+        .btn-warning { background: #e65100; color: white; }
+        .btn-warning:hover { background: #bf360c; }
+        .btn-outline { background: transparent; border: 1px solid #2a2a4a; color: #aaa; }
+        .btn-outline:hover { border-color: #fb7299; color: #fb7299; }
+        .btn-sm { padding: 6px 14px; font-size: 12px; }
+        .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+        .divider { border: none; border-top: 1px solid #2a2a4a; margin: 16px 0; }
+        .toast { position: fixed; top: 20px; right: 20px; padding: 14px 20px; border-radius: 8px; font-size: 14px; z-index: 1000; animation: slideIn 0.3s ease; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
+        .toast.success { background: #1b5e20; color: #81c784; }
+        .toast.error { background: #4a2a2a; color: #ef5350; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .token-display { background: #0d1117; padding: 12px; border-radius: 8px; font-family: "SF Mono", "Fira Code", monospace; font-size: 14px; color: #fb7299; word-break: break-all; border: 1px solid #2a2a4a; margin-bottom: 8px; }
+        .danger-zone { border: 1px solid #c62828 !important; }
+        .danger-zone h2 { color: #ef5350 !important; }
+        .hint { color: #666; font-size: 12px; margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>VRChat BPlayer Proxy</h1>
+        <div class="nav">
+            <a href="/dashboard">控制台</a>
+            <a href="/stats">统计</a>
+            <a href="/generator">生成器</a>
+            <a href="/preload">预加载</a>
+            <a href="/help">API 文档</a>
+            <a href="/settings" class="active">设置</a>
+            <a href="/logout">退出</a>
+        </div>
+    </div>
+
+    <div class="content">
+        <!-- API Settings -->
+        <div class="card">
+            <h2>API 设置</h2>
+            <div class="form-group">
+                <label>当前 API Token</label>
+                <div class="token-display">{{ api_token }}</div>
+                <button class="btn btn-outline btn-sm" onclick="resetToken()">生成新 Token</button>
+            </div>
+            <hr class="divider">
+            <div class="form-group">
+                <label>默认清晰度</label>
+                <select id="default_quality">
+                    {% for qk in quality_keys %}
+                    <option value="{{ qk }}" {% if qk == default_quality %}selected{% endif %}>{{ qk }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="saveSection('api')">保存 API 设置</button>
+            </div>
+        </div>
+
+        <!-- Account Settings -->
+        <div class="card">
+            <h2>账号设置</h2>
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" id="new_username" value="admin">
+                <span class="hint">修改用户名需要输入当前密码</span>
+            </div>
+            <hr class="divider">
+            <div class="form-group">
+                <label>修改密码</label>
+            </div>
+            <div class="form-group">
+                <label>当前密码</label>
+                <input type="password" id="current_password" placeholder="输入当前密码">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>新密码</label>
+                    <input type="password" id="new_password" placeholder="输入新密码">
+                </div>
+                <div class="form-group">
+                    <label>确认新密码</label>
+                    <input type="password" id="new_password_confirm" placeholder="再次输入新密码">
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="saveSection('account')">修改密码</button>
+            </div>
+            <hr class="divider">
+            <div class="checkbox-group form-group">
+                <input type="checkbox" id="enable_web_auth" {% if enable_web_auth == '1' %}checked{% endif %}>
+                <label for="enable_web_auth">启用控制台登录验证</label>
+            </div>
+            <p class="hint">关闭后，访问控制台无需输入账号密码，可直接进入。</p>
+        </div>
+
+        <!-- Server Settings -->
+        <div class="card">
+            <h2>服务器设置</h2>
+            <div class="form-group">
+                <label>FFmpeg 路径</label>
+                <input type="text" id="ffmpeg_path" value="{{ ffmpeg_path }}">
+                <span class="hint">修改后需要重启服务生效</span>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>API 端口（需重启）</label>
+                    <input type="number" id="api_port" value="{{ api_port }}" min="1024" max="65535">
+                </div>
+                <div class="form-group">
+                    <label>Web 面板端口（需重启）</label>
+                    <input type="number" id="web_port" value="{{ web_port }}" min="1024" max="65535">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>日志保留天数</label>
+                    <input type="number" id="log_retention_days" value="{{ log_retention_days }}" min="1" max="365">
+                </div>
+                <div class="form-group">
+                    <label>Cookie 刷新间隔 (小时)</label>
+                    <input type="number" id="cookie_refresh_interval" value="{{ cookie_refresh_interval }}" min="1" max="168">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Aria2 下载线程数 (1-64)</label>
+                <input type="number" id="aria2_connections" value="{{ aria2_connections }}" min="1" max="64">
+                <span class="hint">更多线程可加速预加载下载，但会增加网络负载。默认 32。</span>
+            </div>
+            <div class="form-group">
+                <label>公开访问地址</label>
+                <input type="text" id="public_base_url" value="{{ public_base_url }}" placeholder="留空=自动检测，例: http://8.148.64.28">
+                <span class="hint">反向代理/公网地址。设置后生成器和预加载中的链接将使用此地址。留空则自动使用当前访问地址。</span>
+            </div>
+            <div class="form-group">
+                <label>最高画质上限</label>
+                <select id="max_output_resolution">
+                    <option value="" {% if max_output_resolution == '' %}selected{% endif %}>无限制</option>
+                    <option value="360" {% if max_output_resolution == '360' %}selected{% endif %}>360p (640×360)</option>
+                    <option value="480" {% if max_output_resolution == '480' %}selected{% endif %}>480p (854×480)</option>
+                    <option value="720" {% if max_output_resolution == '720' %}selected{% endif %}>720p (1280×720)</option>
+                    <option value="1080" {% if max_output_resolution == '1080' %}selected{% endif %}>1080p (1920×1080)</option>
+                    <option value="1440" {% if max_output_resolution == '1440' %}selected{% endif %}>2K (2560×1440) — 推荐</option>
+                    <option value="2160" {% if max_output_resolution == '2160' %}selected{% endif %}>4K (3840×2160)</option>
+                </select>
+                <span class="hint">超出上限的视频将被实时转码降级，未超出的视频直接输出。设置后下次播放生效。</span>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="saveSection('server')">保存服务器设置</button>
+            </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="card danger-zone">
+            <h2>⚠ 危险操作</h2>
+            <div class="btn-row">
+                <button class="btn btn-warning" onclick="logoutAll()">登出所有 Web 会话</button>
+                <button class="btn btn-danger" onclick="factoryReset()">恢复出厂设置</button>
+            </div>
+            <p class="hint" style="margin-top: 12px; color: #ef5350;">恢复出厂设置会清除所有自定义设置，需要重启服务。</p>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script>
+    function showToast(message, type) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'toast ' + type;
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    async function saveSection(section) {
+        const formData = new FormData();
+        formData.append('username', 'admin');
+
+        if (section === 'api') {
+            formData.append('default_quality', document.getElementById('default_quality').value);
+        } else if (section === 'account') {
+            formData.append('new_username', document.getElementById('new_username').value);
+            formData.append('current_password', document.getElementById('current_password').value);
+            formData.append('new_password', document.getElementById('new_password').value);
+            formData.append('new_password_confirm', document.getElementById('new_password_confirm').value);
+            formData.append('enable_web_auth', document.getElementById('enable_web_auth').checked ? '1' : '0');
+        } else if (section === 'server') {
+            formData.append('ffmpeg_path', document.getElementById('ffmpeg_path').value);
+            formData.append('api_port', document.getElementById('api_port').value);
+            formData.append('web_port', document.getElementById('web_port').value);
+            formData.append('log_retention_days', document.getElementById('log_retention_days').value);
+            formData.append('cookie_refresh_interval', document.getElementById('cookie_refresh_interval').value);
+            formData.append('max_output_resolution', document.getElementById('max_output_resolution').value);
+            formData.append('aria2_connections', document.getElementById('aria2_connections').value);
+            formData.append('public_base_url', document.getElementById('public_base_url').value);
+        }
+
+        try {
+            const resp = await fetch('/settings/save', {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await resp.json();
+            showToast(data.message || '保存成功', data.success ? 'success' : 'error');
+            if (data.success && section === 'account') {
+                document.getElementById('current_password').value = '';
+                document.getElementById('new_password').value = '';
+                document.getElementById('new_password_confirm').value = '';
+            }
+        } catch(e) {
+            showToast('保存失败: ' + e.message, 'error');
+        }
+    }
+
+    async function resetToken() {
+        try {
+            const resp = await fetch('/settings/reset-token', { method: 'POST' });
+            const data = await resp.json();
+            if (data.success) {
+                document.querySelector('.token-display').textContent = data.token;
+                showToast('新 Token: ' + data.token, 'success');
+            } else {
+                showToast('重置失败', 'error');
+            }
+        } catch(e) {
+            showToast('重置失败: ' + e.message, 'error');
+        }
+    }
+
+    async function logoutAll() {
+        if (!confirm('确定要登出所有 Web 会话吗？')) return;
+        try {
+            const resp = await fetch('/settings/logout-all', { method: 'POST' });
+            const data = await resp.json();
+            showToast(data.message, data.success ? 'success' : 'error');
+        } catch(e) {
+            showToast('操作失败: ' + e.message, 'error');
+        }
+    }
+
+    async function factoryReset() {
+        if (!confirm('确定要恢复出厂设置吗？这将清除所有自定义设置！')) return;
+        if (!confirm('再次确认：所有自定义设置将被重置为默认值。')) return;
+        try {
+            const resp = await fetch('/settings/factory-reset', { method: 'POST' });
+            const data = await resp.json();
+            showToast(data.message, data.success ? 'success' : 'error');
+            if (data.success) {
+                setTimeout(() => location.reload(), 2000);
+            }
+        } catch(e) {
+            showToast('操作失败: ' + e.message, 'error');
+        }
+    }
+    </script>
+</body>
+</html>

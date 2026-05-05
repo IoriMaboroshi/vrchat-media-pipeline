@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VRChat BPlayer Proxy - 控制台</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23fb7299'/><text x='16' y='23' text-anchor='middle' fill='white' font-size='20' font-weight='bold' font-family='Arial'>B</text></svg>">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; }
+        .header { background: #16213e; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a4a; }
+        .header h1 { font-size: 18px; color: #fb7299; }
+        .nav a { color: #aaa; text-decoration: none; margin-left: 20px; font-size: 14px; }
+        .nav a:hover, .nav a.active { color: #fb7299; }
+        .content { max-width: 900px; margin: 0 auto; padding: 24px; }
+        .card { background: #16213e; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+        .card h2 { font-size: 16px; margin-bottom: 16px; color: #aaa; }
+        .user-info { display: flex; align-items: center; gap: 16px; }
+        .avatar { width: 64px; height: 64px; border-radius: 50%; border: 2px solid #fb7299; }
+        .user-detail { flex: 1; }
+        .user-detail .name { font-size: 20px; font-weight: 600; }
+        .user-detail .uid { color: #888; font-size: 14px; margin-top: 4px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 8px; }
+        .badge.vip { background: #fb7299; color: white; }
+        .badge.level { background: #2a2a4a; color: #aaa; }
+        .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        @media (max-width: 700px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+        .stat-box { background: #0f3460; border-radius: 8px; padding: 16px; text-align: center; }
+        .stat-box .num { font-size: 28px; font-weight: 700; color: #fb7299; }
+        .stat-box .label { font-size: 12px; color: #888; margin-top: 4px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 8px 12px; background: #0f3460; color: #888; font-weight: 500; }
+        td { padding: 8px 12px; border-bottom: 1px solid #2a2a4a; }
+        tr:hover td { background: #1a1a3e; }
+        .empty { text-align: center; color: #666; padding: 40px; }
+        .btn { display: inline-block; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; transition: background 0.2s; }
+        .btn-danger { background: #c62828; color: white; }
+        .btn-danger:hover { background: #b71c1c; }
+        .btn-primary { background: #fb7299; color: white; }
+        .btn-primary:hover { background: #e06080; }
+        .cookie-status { display: flex; align-items: center; gap: 12px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; }
+        .dot.on { background: #4caf50; }
+        .dot.off { background: #ef5350; }
+        .chart-container { position: relative; height: 300px; margin-bottom: 8px; }
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .month-selector { display: flex; gap: 8px; align-items: center; }
+        .month-selector select { padding: 6px 12px; background: #0f3460; border: 1px solid #2a2a4a; border-radius: 6px; color: #e0e0e0; font-size: 13px; font-family: inherit; cursor: pointer; }
+        .month-selector select:focus { outline: none; border-color: #fb7299; }
+        .month-selector .nav-btn { background: #0f3460; border: 1px solid #2a2a4a; border-radius: 6px; color: #aaa; cursor: pointer; padding: 6px 10px; font-size: 14px; transition: all 0.2s; }
+        .month-selector .nav-btn:hover { border-color: #fb7299; color: #fb7299; }
+        .tooltip-popup { position: fixed; background: #16213e; border: 1px solid #2a2a4a; border-radius: 8px; padding: 12px; z-index: 1000; font-size: 12px; min-width: 200px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); display: none; }
+        .tooltip-popup .tt-item { padding: 3px 0; color: #bbb; }
+        .tooltip-popup .tt-bvid { color: #fb7299; }
+        .tooltip-popup .tt-ip { color: #888; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>VRChat BPlayer Proxy</h1>
+        <div class="nav">
+            <a href="/dashboard" class="active">控制台</a>
+            <a href="/stats">统计</a>
+            <a href="/generator">生成器</a>
+            <a href="/preload">预加载</a>
+            <a href="/help">API 文档</a>
+            <a href="/settings">设置</a>
+            <a href="/logout">退出</a>
+        </div>
+    </div>
+
+    <div class="content">
+        <!-- Account Info -->
+        <div class="card">
+            <h2>账号信息</h2>
+            {% if user and user.is_login %}
+            <div class="user-info">
+                <img class="avatar" src="{{ user.avatar }}" alt="avatar" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect fill=%22%23333%22 width=%2264%22 height=%2264%22/><text x=%2222%22 y=%2244%22 fill=%22%23888%22 font-size=%2228%22>?</text></svg>'">
+                <div class="user-detail">
+                    <div class="name">
+                        {{ user.nickname }}
+                        {% if user.vip %}<span class="badge vip">大会员</span>{% endif %}
+                        <span class="badge level">Lv{{ user.level }}</span>
+                    </div>
+                    <div class="uid">UID: {{ user.uid }}</div>
+                </div>
+                <div>
+                    <a href="/logout" class="btn btn-danger">退出登录</a>
+                </div>
+            </div>
+            <div style="margin-top: 12px;">
+                <span class="cookie-status">
+                    <span class="dot on"></span> Cookie 有效
+                </span>
+            </div>
+            {% else %}
+            <div class="empty">
+                <p>未登录 Bilibili 账号</p>
+                <a href="/" class="btn btn-primary" style="margin-top: 12px;">去登录</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="card">
+            <h2>API 调用概览</h2>
+            <div class="stats-row">
+                <div class="stat-box">
+                    <div class="num">{{ total_calls }}</div>
+                    <div class="label">总调用次数</div>
+                </div>
+                <div class="stat-box">
+                    <div class="num">{{ today_calls }}</div>
+                    <div class="label">今日调用</div>
+                </div>
+                <div class="stat-box">
+                    <div class="num">{{ this_month_calls }}</div>
+                    <div class="label">本月调用</div>
+                </div>
+                <div class="stat-box">
+                    <div class="num">{{ daily_stats|sum(attribute='calls') if daily_stats else 0 }}</div>
+                    <div class="label">近 7 天调用</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="card">
+            <div class="chart-header">
+                <h2 style="margin-bottom:0;">每日调用趋势</h2>
+                <div class="month-selector">
+                    <button class="nav-btn" onclick="changeMonth(-1)">&#9664;</button>
+                    <select id="chart-year" onchange="loadChart()">
+                    </select>
+                    <select id="chart-month" onchange="loadChart()">
+                    </select>
+                    <button class="nav-btn" onclick="changeMonth(1)">&#9654;</button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="dailyChart"></canvas>
+            </div>
+        </div>
+
+        <div class="tooltip-popup" id="tooltip"></div>
+
+        <!-- Recent Calls -->
+        <div class="card">
+            <h2>最近调用记录</h2>
+            {% if recent_logs %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>时间</th>
+                        <th>IP</th>
+                        <th>属地</th>
+                        <th>BVID</th>
+                        <th>清晰度</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in recent_logs %}
+                    <tr>
+                        <td>{{ log.timestamp }}</td>
+                        <td>{{ log.caller_ip }}</td>
+                        <td>{{ log.caller_geo or '-' }}</td>
+                        <td>{{ log.bvid }}</td>
+                        <td>{{ log.qx or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty">暂无调用记录</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+    let chart = null;
+    const now = new Date();
+    let currentYear = now.getFullYear();
+    let currentMonth = now.getMonth() + 1;
+
+    // Populate year/month selectors
+    function populateSelectors() {
+        const yearSel = document.getElementById('chart-year');
+        const monthSel = document.getElementById('chart-month');
+        yearSel.innerHTML = '';
+        monthSel.innerHTML = '';
+
+        const minYear = 2024;
+        for (let y = now.getFullYear(); y >= minYear; y--) {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y + '年';
+            if (y === currentYear) opt.selected = true;
+            yearSel.appendChild(opt);
+        }
+
+        for (let m = 1; m <= 12; m++) {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = m + '月';
+            if (m === currentMonth) opt.selected = true;
+            monthSel.appendChild(opt);
+        }
+    }
+
+    function changeMonth(delta) {
+        currentMonth += delta;
+        if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+        if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+        document.getElementById('chart-year').value = currentYear;
+        document.getElementById('chart-month').value = currentMonth;
+        loadChart();
+    }
+
+    async function loadChart() {
+        currentYear = parseInt(document.getElementById('chart-year').value);
+        currentMonth = parseInt(document.getElementById('chart-month').value);
+
+        try {
+            const resp = await fetch(`/api/stats/daily?year=${currentYear}&month=${currentMonth}`);
+            const data = await resp.json();
+
+            const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+            const labels = [];
+            const values = [];
+            const dayMap = {};
+            data.forEach(d => { dayMap[d.day] = d.calls; });
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                labels.push(d + '日');
+                values.push(dayMap[dateStr] || 0);
+            }
+
+            const ctx = document.getElementById('dailyChart').getContext('2d');
+            if (chart) chart.destroy();
+
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '调用次数',
+                        data: values,
+                        backgroundColor: '#fb7299',
+                        borderRadius: 4,
+                        hoverBackgroundColor: '#ff8db3',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) { return ctx.raw + ' 次'; },
+                                title: function(ctx) {
+                                    const day = ctx[0].label.replace('日', '');
+                                    return `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#888', font: { size: 11 } },
+                            grid: { color: '#2a2a4a' }
+                        },
+                        y: {
+                            ticks: { color: '#888', precision: 0, stepSize: 1 },
+                            grid: { color: '#2a2a4a' },
+                            beginAtZero: true
+                        }
+                    },
+                    onClick: async (event, elements) => {
+                        if (elements.length === 0) return;
+                        const idx = elements[0].index;
+                        const day = idx + 1;
+                        const dateStr = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                        showTooltip(event, dateStr, values[idx]);
+                    }
+                }
+            });
+
+            // Also make bars clickable for tooltip
+            const canvas = document.getElementById('dailyChart');
+            canvas.onclick = async (e) => {
+                const points = chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
+                if (points.length === 0) return;
+                const idx = points[0].index;
+                const day = idx + 1;
+                const dateStr = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                showTooltip(e, dateStr, values[idx]);
+            };
+
+        } catch(e) {
+            console.error('Failed to load chart data:', e);
+        }
+    }
+
+    async function showTooltip(event, dateStr, count) {
+        const tooltip = document.getElementById('tooltip');
+        if (count === 0) {
+            tooltip.innerHTML = `<div class="tt-item">${dateStr}: 无调用记录</div>`;
+        } else {
+            try {
+                const resp = await fetch(`/api/stats/daily-detail?date=${dateStr}`);
+                const data = await resp.json();
+                let html = `<div style="font-weight:600;color:#fb7299;margin-bottom:6px;">${dateStr} (${count} 次)</div>`;
+                data.slice(0, 10).forEach(d => {
+                    html += `<div class="tt-item"><span class="tt-bvid">${d.bvid}</span> <span class="tt-ip">${d.caller_ip} ${d.caller_geo || ''}</span> ${d.qx || ''}</div>`;
+                });
+                if (data.length > 10) html += `<div class="tt-item" style="color:#666;">... 还有 ${data.length - 10} 条</div>`;
+                tooltip.innerHTML = html;
+            } catch(e) {
+                tooltip.innerHTML = `<div class="tt-item">${dateStr}: ${count} 次调用</div>`;
+            }
+        }
+        tooltip.style.display = 'block';
+        tooltip.style.left = Math.min(event.clientX + 10, window.innerWidth - 220) + 'px';
+        tooltip.style.top = Math.min(event.clientY - 10, window.innerHeight - 200) + 'px';
+
+        setTimeout(() => { tooltip.style.display = 'none'; }, 5000);
+    }
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#dailyChart') && !e.target.closest('#tooltip')) {
+            document.getElementById('tooltip').style.display = 'none';
+        }
+    });
+
+    populateSelectors();
+    loadChart();
+    </script>
+</body>
+</html>

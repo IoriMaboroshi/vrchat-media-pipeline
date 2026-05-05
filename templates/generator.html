@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VRChat BPlayer Proxy - URL 生成器</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23fb7299'/><text x='16' y='23' text-anchor='middle' fill='white' font-size='20' font-weight='bold' font-family='Arial'>B</text></svg>">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; }
+        .header { background: #16213e; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a4a; }
+        .header h1 { font-size: 18px; color: #fb7299; }
+        .nav a { color: #aaa; text-decoration: none; margin-left: 20px; font-size: 14px; }
+        .nav a:hover, .nav a.active { color: #fb7299; }
+        .content { max-width: 900px; margin: 0 auto; padding: 24px; }
+        .card { background: #16213e; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+        .card h2 { font-size: 16px; margin-bottom: 16px; color: #fb7299; border-bottom: 1px solid #2a2a4a; padding-bottom: 12px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 13px; color: #888; margin-bottom: 6px; }
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group select { width: 100%; padding: 10px 14px; background: #0f3460; border: 1px solid #2a2a4a; border-radius: 8px; color: #e0e0e0; font-size: 14px; font-family: inherit; transition: border-color 0.2s; }
+        .form-group input:focus,
+        .form-group select:focus { outline: none; border-color: #fb7299; }
+        .form-group select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path fill='%23888' d='M6 8L1 3h10z'/></svg>"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
+        .form-group select option { background: #16213e; color: #e0e0e0; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+        .btn { display: inline-block; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-family: inherit; transition: all 0.2s; font-weight: 500; }
+        .btn-primary { background: #fb7299; color: white; }
+        .btn-primary:hover { background: #e06080; }
+        .btn-outline { background: transparent; border: 1px solid #2a2a4a; color: #aaa; }
+        .btn-outline:hover { border-color: #fb7299; color: #fb7299; }
+        .btn-sm { padding: 6px 14px; font-size: 12px; }
+        .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .checkbox-group input[type="checkbox"] { width: 18px; height: 18px; accent-color: #fb7299; cursor: pointer; }
+        .checkbox-group label { color: #bbb; font-size: 14px; cursor: pointer; margin: 0; }
+        .input-row { display: flex; gap: 10px; }
+        .input-row input { flex: 1; }
+        .video-preview { display: none; margin-top: 16px; }
+        .video-preview.show { display: block; }
+        .preview-header { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
+        .preview-cover { width: 160px; height: 100px; border-radius: 8px; object-fit: cover; background: #0f3460; flex-shrink: 0; }
+        .preview-info { flex: 1; }
+        .preview-info .title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+        .preview-info .meta { font-size: 13px; color: #888; }
+        .preview-info .owner { font-size: 13px; color: #fb7299; margin-top: 4px; }
+        .url-box { position: relative; background: #0d1117; padding: 14px; border-radius: 8px; font-family: "SF Mono", "Fira Code", monospace; font-size: 13px; color: #81c784; word-break: break-all; border: 1px solid #2a2a4a; margin-bottom: 8px; line-height: 1.5; }
+        .url-box .copy-btn { position: absolute; top: 10px; right: 10px; }
+        .toast { position: fixed; top: 20px; right: 20px; padding: 14px 20px; border-radius: 8px; font-size: 14px; z-index: 1000; animation: slideIn 0.3s ease; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
+        .toast.success { background: #1b5e20; color: #81c784; }
+        .toast.error { background: #4a2a2a; color: #ef5350; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .loading { text-align: center; padding: 20px; color: #888; }
+        .spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid #2a2a4a; border-top-color: #fb7299; border-radius: 50%; animation: spin 0.6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .hint { color: #666; font-size: 12px; margin-top: 4px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 8px 12px; background: #0f3460; color: #888; font-weight: 500; }
+        td { padding: 8px 12px; border-bottom: 1px solid #2a2a4a; }
+        tr:hover td { background: #1a1a3e; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>VRChat BPlayer Proxy</h1>
+        <div class="nav">
+            <a href="/dashboard">控制台</a>
+            <a href="/stats">统计</a>
+            <a href="/generator" class="active">生成器</a>
+            <a href="/preload">预加载</a>
+            <a href="/help">API 文档</a>
+            <a href="/settings">设置</a>
+            <a href="/logout">退出</a>
+        </div>
+    </div>
+
+    <div class="content">
+        <!-- Query Section -->
+        <div class="card">
+            <h2>查询视频</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>BV号</label>
+                    <input type="text" id="bvid" placeholder="例: BV1GJ411x7h7" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>或 番剧 EP</label>
+                    <input type="text" id="ep_id" placeholder="例: ep1482617" autocomplete="off">
+                </div>
+            </div>
+            <div class="hint">输入 BV号 或 EP号 点击查询，获取视频详细信息。</div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="queryVideo()">查询视频</button>
+            </div>
+            <div id="loading" class="loading" style="display:none;"><span class="spinner"></span> 查询中...</div>
+            <div id="error" style="display:none; color: #ef5350; text-align: center; padding: 10px;"></div>
+        </div>
+
+        <!-- Video Preview (hidden until query) -->
+        <div class="card video-preview" id="preview-card">
+            <h2>视频预览</h2>
+            <div class="preview-header">
+                <img class="preview-cover" id="preview-cover" src="" alt="cover" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 160 100%22><rect fill=%22%230f3460%22 width=%22160%22 height=%22100%22/><text x=%2250%22 y=%2258%22 fill=%22%23888%22 font-size=%2214%22>No Cover</text></svg>'">
+                <div class="preview-info">
+                    <div class="title" id="preview-title">-</div>
+                    <div class="meta" id="preview-meta">-</div>
+                    <div class="owner" id="preview-owner">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Options Section (hidden until query) -->
+        <div class="card video-preview" id="options-card">
+            <h2>生成选项</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>清晰度</label>
+                    <select id="quality"></select>
+                </div>
+                <div class="form-group">
+                    <label>分P选择 (多P视频)</label>
+                    <select id="page"><option value="0">自动 (默认分P)</option></select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>起始时间 (秒, 可选)</label>
+                <input type="number" id="start_time" placeholder="0" min="0" value="0">
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="generateUrl()">生成播放 URL</button>
+            </div>
+        </div>
+
+        <!-- Generated URL -->
+        <div class="card video-preview" id="url-card">
+            <h2>生成的播放地址</h2>
+            <div class="url-box" id="url-display">点击「生成播放 URL」生成地址</div>
+            <div class="btn-row">
+                <button class="btn btn-outline btn-sm" onclick="copyUrl()">复制地址</button>
+                <button class="btn btn-outline btn-sm" onclick="openUrl()">打开测试</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script>
+    const API_TOKEN = '{{ api_token }}';
+    let videoData = null;
+    let generatedUrl = '';
+
+    function showToast(message, type) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'toast ' + type;
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    function getApiToken() {
+        return '{{ api_token }}';
+    }
+
+    const PUBLIC_BASE_URL = '{{ public_base_url }}';
+    function getApiBaseUrl() {
+        var host = window.location.hostname;
+        return 'http://' + host + ':14515';
+    }
+    function getPlayBaseUrl() {
+        if (PUBLIC_BASE_URL) return PUBLIC_BASE_URL;
+        return getApiBaseUrl();
+    }
+
+    async function queryVideo() {
+        const bvid = document.getElementById('bvid').value.trim();
+        const epId = document.getElementById('ep_id').value.trim();
+        if (!bvid && !epId) {
+            showToast('请输入 BV号 或 EP号', 'error');
+            return;
+        }
+
+        const loading = document.getElementById('loading');
+        const errorEl = document.getElementById('error');
+        const previewCard = document.getElementById('preview-card');
+        const optionsCard = document.getElementById('options-card');
+        const urlCard = document.getElementById('url-card');
+
+        loading.style.display = 'block';
+        errorEl.style.display = 'none';
+        previewCard.classList.remove('show');
+        optionsCard.classList.remove('show');
+        urlCard.classList.remove('show');
+        generatedUrl = '';
+
+        try {
+            let url = '/api/video-summary?token=' + API_TOKEN + '&';
+            if (bvid) url += 'bvid=' + encodeURIComponent(bvid);
+            else url += 'ep_id=' + encodeURIComponent(epId);
+
+            const resp = await fetch(url);
+            const data = await resp.json();
+
+            loading.style.display = 'none';
+
+            if (resp.status !== 200 || data.detail) {
+                errorEl.textContent = data.detail || '查询失败';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            videoData = data;
+            populatePreview(data);
+            populateOptions(data);
+            previewCard.classList.add('show');
+            optionsCard.classList.add('show');
+            urlCard.classList.add('show');
+        } catch(e) {
+            loading.style.display = 'none';
+            errorEl.textContent = '网络错误: ' + e.message;
+            errorEl.style.display = 'block';
+        }
+    }
+
+    function populatePreview(data) {
+        document.getElementById('preview-cover').src = data.cover || '';
+        document.getElementById('preview-title').textContent = data.title || '(无标题)';
+        const mins = Math.floor((data.duration || 0) / 60);
+        const secs = (data.duration || 0) % 60;
+        document.getElementById('preview-meta').textContent = `时长: ${mins}:${String(secs).padStart(2,'0')} | ${data.pages ? data.pages.length : 0} 个分P`;
+        document.getElementById('preview-owner').textContent = data.owner ? `UP主: ${data.owner.name}` : '';
+    }
+
+    function populateOptions(data) {
+        // Qualities
+        const qSelect = document.getElementById('quality');
+        qSelect.innerHTML = '';
+        if (data.qualities && data.qualities.length > 0) {
+            data.qualities.forEach(q => {
+                const opt = document.createElement('option');
+                opt.value = q.qn;
+                opt.textContent = q.label;
+                qSelect.appendChild(opt);
+            });
+        } else {
+            qSelect.innerHTML = '<option value="64">1080P 高清</option>';
+        }
+
+        // Pages
+        const pSelect = document.getElementById('page');
+        pSelect.innerHTML = '<option value="0">自动 (默认分P)</option>';
+        if (data.pages && data.pages.length > 0) {
+            data.pages.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.page;
+                opt.textContent = `P${p.page}: ${p.part || '未命名'}`;
+                pSelect.appendChild(opt);
+            });
+        }
+    }
+
+    function generateUrl() {
+        if (!videoData) {
+            showToast('请先查询视频', 'error');
+            return;
+        }
+
+        const bvid = videoData.bvid;
+        const page = document.getElementById('page').value;
+        const startTime = document.getElementById('start_time').value;
+
+        // Quality: find qx from selected qn
+        const qSelect = document.getElementById('quality');
+        const selectedQn = parseInt(qSelect.value);
+        let qx = '1080p';
+        const qnToQx = {120:'4k',112:'1080p60',64:'1080p',32:'720p',16:'480p',8:'360p'};
+        qx = qnToQx[selectedQn] || '1080p';
+
+        let url = getPlayBaseUrl() + '/play?bvid=' + bvid;
+        url += '&qx=' + qx;
+        url += '&token=' + API_TOKEN;
+        if (page && parseInt(page) > 0) url += '&page=' + page;
+        if (startTime && parseInt(startTime) > 0) url += '&t=' + startTime;
+
+        generatedUrl = url;
+        document.getElementById('url-display').textContent = url;
+        showToast('URL 已生成', 'success');
+    }
+
+    function copyUrl() {
+        if (!generatedUrl) {
+            showToast('请先生成 URL', 'error');
+            return;
+        }
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(generatedUrl).then(function() {
+                    showToast('已复制!', 'success');
+                }).catch(function() {
+                    fallbackCopy(generatedUrl);
+                });
+            } else {
+                fallbackCopy(generatedUrl);
+            }
+        } catch(e) {
+            fallbackCopy(generatedUrl);
+        }
+    }
+    
+    function fallbackCopy(text) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.top = '0';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        try { document.execCommand('copy'); showToast('已复制!', 'success'); }
+        catch(e) { showToast('复制失败，请手动复制', 'error'); }
+        document.body.removeChild(ta);
+    }
+
+    function openUrl() {
+        if (!generatedUrl) {
+            showToast('请先生成 URL', 'error');
+            return;
+        }
+        window.open(generatedUrl, '_blank');
+    }
+    </script>
+</body>
+</html>

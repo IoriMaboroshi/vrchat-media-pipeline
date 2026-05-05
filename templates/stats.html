@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VRChat BPlayer Proxy - 统计</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23fb7299'/><text x='16' y='23' text-anchor='middle' fill='white' font-size='20' font-weight='bold' font-family='Arial'>B</text></svg>">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; }
+        .header { background: #16213e; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a4a; }
+        .header h1 { font-size: 18px; color: #fb7299; }
+        .nav a { color: #aaa; text-decoration: none; margin-left: 20px; font-size: 14px; }
+        .nav a:hover, .nav a.active { color: #fb7299; }
+        .content { max-width: 1000px; margin: 0 auto; padding: 24px; }
+        .card { background: #16213e; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+        .card h2 { font-size: 16px; margin-bottom: 16px; color: #aaa; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 8px 12px; background: #0f3460; color: #888; font-weight: 500; }
+        td { padding: 8px 12px; border-bottom: 1px solid #2a2a4a; }
+        tr:hover td { background: #1a1a3e; }
+        .empty { text-align: center; color: #666; padding: 40px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } }
+        .bar { height: 20px; background: #fb7299; border-radius: 4px; min-width: 4px; transition: width 0.3s; }
+        .bar-bg { background: #0f3460; border-radius: 4px; overflow: hidden; }
+        .bar-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; color: #888; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>VRChat BPlayer Proxy</h1>
+        <div class="nav">
+            <a href="/dashboard">控制台</a>
+            <a href="/stats" class="active">统计</a>
+            <a href="/generator">生成器</a>
+            <a href="/preload">预加载</a>
+            <a href="/help">API 文档</a>
+            <a href="/settings">设置</a>
+            <a href="/logout">退出</a>
+        </div>
+    </div>
+
+    <div class="content">
+        <!-- Total -->
+        <div class="card" style="text-align:center;">
+            <div style="font-size: 48px; font-weight: 700; color: #fb7299;">{{ total_calls }}</div>
+            <div style="color: #888; font-size: 14px;">总 API 调用次数</div>
+        </div>
+
+        <div class="grid-2">
+            <!-- Monthly Stats -->
+            <div class="card">
+                <h2>月度统计</h2>
+                {% if monthly_stats %}
+                <table>
+                    <thead><tr><th>月份</th><th>调用次数</th></tr></thead>
+                    <tbody>
+                    {% for m in monthly_stats %}
+                    <tr><td>{{ m.month }}</td><td>{{ m.calls }}</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty">暂无数据</div>
+                {% endif %}
+            </div>
+
+            <!-- Daily Stats -->
+            <div class="card">
+                <h2>每日统计 (近30天)</h2>
+                {% if daily_stats %}
+                {% set max_calls = daily_stats|map(attribute='calls')|max %}
+                {% for d in daily_stats[:15] %}
+                <div class="bar-label">
+                    <span>{{ d.day }}</span>
+                    <span>{{ d.calls }}</span>
+                </div>
+                <div class="bar-bg">
+                    <div class="bar" style="width: {{ (d.calls / max_calls * 100)|int }}%"></div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty">暂无数据</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- IP Stats -->
+        <div class="card">
+            <h2>IP 来源统计</h2>
+            {% if ip_stats %}
+            <table>
+                <thead><tr><th>IP</th><th>属地</th><th>调用次数</th><th>最后调用</th></tr></thead>
+                <tbody>
+                {% for ip in ip_stats %}
+                <tr>
+                    <td>{{ ip.caller_ip }}</td>
+                    <td>{{ ip.caller_geo or '-' }}</td>
+                    <td>{{ ip.calls }}</td>
+                    <td>{{ ip.last_call }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty">暂无数据</div>
+            {% endif %}
+        </div>
+
+        <!-- Recent Logs -->
+        <div class="card">
+            <h2>最近调用记录</h2>
+            {% if recent_logs %}
+            <table>
+                <thead><tr><th>时间</th><th>IP</th><th>属地</th><th>BVID</th><th>清晰度</th><th>UA</th></tr></thead>
+                <tbody>
+                {% for log in recent_logs %}
+                <tr>
+                    <td>{{ log.timestamp }}</td>
+                    <td>{{ log.caller_ip }}</td>
+                    <td>{{ log.caller_geo or '-' }}</td>
+                    <td>{{ log.bvid }}</td>
+                    <td>{{ log.qx or '-' }}</td>
+                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ log.user_agent or '-' }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty">暂无调用记录</div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

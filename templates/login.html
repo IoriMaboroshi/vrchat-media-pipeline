@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VRChat BPlayer Proxy - 登录</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23fb7299'/><text x='16' y='23' text-anchor='middle' fill='white' font-size='20' font-weight='bold' font-family='Arial'>B</text></svg>">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .container { background: #16213e; border-radius: 16px; padding: 40px; max-width: 420px; width: 90%; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+        h1 { font-size: 24px; margin-bottom: 8px; color: #fb7299; }
+        .subtitle { color: #888; font-size: 14px; margin-bottom: 24px; }
+        .qr-box { background: white; padding: 16px; border-radius: 12px; display: inline-block; margin-bottom: 20px; }
+        .qr-box img { width: 200px; height: 200px; display: block; }
+        .status { padding: 10px 20px; border-radius: 8px; margin: 16px 0; font-size: 14px; }
+        .status.waiting { background: #2a2a4a; color: #aaa; }
+        .status.scanned { background: #2a4a2a; color: #4caf50; }
+        .status.success { background: #1b5e20; color: #81c784; }
+        .status.error { background: #4a2a2a; color: #ef5350; }
+        .status.expired { background: #4a3a2a; color: #ff9800; }
+        .tip { color: #666; font-size: 12px; margin-top: 16px; }
+        .loading { display: inline-block; width: 12px; height: 12px; border: 2px solid #888; border-top: 2px solid #fb7299; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 8px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>VRChat BPlayer Proxy</h1>
+        <p class="subtitle">扫码登录你的 Bilibili 账号</p>
+
+        {% if error %}
+        <div class="status error">{{ error }}</div>
+        {% endif %}
+
+        {% if qr_img %}
+        <div class="qr-box">
+            <img src="{{ qr_img }}" alt="QR Code">
+        </div>
+        <div id="status-bar" class="status waiting">
+            <span class="loading"></span> 等待扫码...
+        </div>
+        <p class="tip">请使用 Bilibili App 扫描二维码</p>
+        {% else %}
+        <div class="status error">无法生成二维码，请刷新重试</div>
+        {% endif %}
+    </div>
+
+    {% if qr_key %}
+    <script>
+    const qrKey = "{{ qr_key }}";
+    let pollCount = 0;
+
+    async function poll() {
+        pollCount++;
+        try {
+            const resp = await fetch(`/poll-login?qrcode_key=${qrKey}`);
+            const data = await resp.json();
+            const bar = document.getElementById('status-bar');
+
+            if (data.code === 0) {
+                bar.className = 'status success';
+                bar.innerHTML = '✓ 登录成功！正在跳转...';
+                setTimeout(() => location.href = '/dashboard', 1000);
+            } else if (data.code === 86090) {
+                bar.className = 'status scanned';
+                bar.innerHTML = '✓ 已扫码，请在手机上确认';
+            } else if (data.code === 86038) {
+                bar.className = 'status expired';
+                bar.innerHTML = '二维码已过期，请刷新页面';
+                return; // stop polling
+            } else {
+                bar.className = 'status waiting';
+                bar.innerHTML = '<span class="loading"></span> 等待扫码... (' + pollCount + 's)';
+            }
+        } catch(e) {
+            document.getElementById('status-bar').innerHTML = '轮询出错，将在 3 秒后重试...';
+        }
+
+        if (pollCount < 180) {  // 3 minutes max
+            setTimeout(poll, 1000);
+        }
+    }
+
+    poll();
+    </script>
+    {% endif %}
+</body>
+</html>

@@ -1,0 +1,22 @@
+services:
+  bplayer-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.openwrt
+    container_name: bplayer-api
+    restart: unless-stopped
+    ports:
+      - "14515:14515"
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - API_TOKEN=thechwinlyu
+      - API_PORT=14515
+      - WEB_PORT=8080
+      - FFMPEG_PATH=ffmpeg
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:14515/health', timeout=5)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

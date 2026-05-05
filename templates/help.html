@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VRChat BPlayer Proxy - API 文档</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23fb7299'/><text x='16' y='23' text-anchor='middle' fill='white' font-size='20' font-weight='bold' font-family='Arial'>B</text></svg>">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; }
+        .header { background: #16213e; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a4a; }
+        .header h1 { font-size: 18px; color: #fb7299; }
+        .nav a { color: #aaa; text-decoration: none; margin-left: 20px; font-size: 14px; }
+        .nav a:hover, .nav a.active { color: #fb7299; }
+        .content { max-width: 900px; margin: 0 auto; padding: 24px; }
+        .card { background: #16213e; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+        .card h2 { font-size: 16px; margin-bottom: 12px; color: #fb7299; }
+        .card h3 { font-size: 14px; margin-bottom: 8px; color: #aaa; }
+        p { line-height: 1.6; margin-bottom: 12px; color: #bbb; }
+        pre { background: #0d1117; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.5; margin-bottom: 12px; border: 1px solid #2a2a4a; }
+        code { font-family: "SF Mono", "Fira Code", monospace; font-size: 13px; }
+        :not(pre) > code { background: #2a2a4a; padding: 2px 6px; border-radius: 4px; color: #fb7299; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
+        th { text-align: left; padding: 8px 12px; background: #0f3460; color: #888; font-weight: 500; }
+        td { padding: 8px 12px; border-bottom: 1px solid #2a2a4a; }
+        tr:hover td { background: #1a1a3e; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+        .badge.get { background: #1b5e20; color: #81c784; }
+        .badge.param { background: #0f3460; color: #90caf9; }
+        .endpoint { font-size: 15px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+        .divider { border: none; border-top: 1px solid #2a2a4a; margin: 16px 0; }
+        .tip { background: #0f3460; border-left: 3px solid #fb7299; padding: 10px 14px; border-radius: 4px; font-size: 13px; color: #bbb; margin-bottom: 12px; }
+        .new { display: inline-block; background: #fb7299; color: white; font-size: 10px; padding: 1px 6px; border-radius: 3px; margin-left: 4px; vertical-align: middle; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>VRChat BPlayer Proxy</h1>
+        <div class="nav">
+            <a href="/dashboard">控制台</a>
+            <a href="/stats">统计</a>
+            <a href="/generator">生成器</a>
+            <a href="/preload">预加载</a>
+            <a href="/help" class="active">API 文档</a>
+            <a href="/settings">设置</a>
+            <a href="/logout">退出</a>
+        </div>
+    </div>
+
+    <div class="content">
+        <!-- Overview -->
+        <div class="card">
+            <h2>概述</h2>
+            <p>VRChat BPlayer Proxy 是一个 B 站视频实时代理服务。它通过服务器端 FFmpeg 将 B 站的 DASH 分离流（音视频独立）实时封装为单一 MP4/M3U8 流，使 VRChat 等播放器可以直接播放高清视频。</p>
+            <div class="tip">
+                <strong>提示：</strong>所有 API 请求都需要携带 <code>token</code> 参数。请妥善保管你的 Token，不要泄露给他人。
+            </div>
+        </div>
+
+        <!-- Auth -->
+        <div class="card">
+            <h2>认证</h2>
+            <p>所有需要认证的 API 端点都需要在 URL 参数中携带 Token：</p>
+            <pre><code>?token=thechwinlyu</code></pre>
+            <p>Token 错误或缺失将返回 <code>403 Forbidden</code>。</p>
+            <p>以下端点<strong>无需</strong> Token：<code>/health</code></p>
+        </div>
+
+        <!-- Play -->
+        <div class="card">
+            <h2>GET /play — 获取视频流 <span class="new">核心端点</span></h2>
+            <p>返回实时封装的视频流，可直接在 VRChat/PotPlayer/浏览器中使用。</p>
+
+            <h3>请求参数</h3>
+            <table>
+                <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
+                <tbody>
+                    <tr><td><code>bvid</code></td><td>string</td><td>是*</td><td>B 站视频 BV 号，如 <code>BV1GJ411x7h7</code></td></tr>
+                    <tr><td><code>ep_id</code></td><td>string</td><td>是*</td><td>番剧/电影 ep_id（与 bvid 二选一），如 <code>ep1482617</code></td></tr>
+                    <tr><td><code>token</code></td><td>string</td><td>是</td><td>API Token</td></tr>
+                    <tr><td><code>qx</code></td><td>string</td><td>否</td><td>清晰度，默认 <code>1080p</code></td></tr>
+                    <tr><td><code>cid</code></td><td>int</td><td>否</td><td>直接指定分P cid</td></tr>
+                    <tr><td><code>page</code></td><td>int</td><td>否</td><td>分P编号 (1-indexed)</td></tr>
+                    <tr><td><code>t</code></td><td>int</td><td>否</td><td>起始时间(秒)，用于视频跳转</td></tr>
+                    <tr><td><code>raw</code></td><td>int</td><td>否</td><td>设为 1 强制返回 m3u8 跳转（用于播放器无法识别时）</td></tr>
+                </tbody>
+            </table>
+
+            <h3>qx 清晰度参数</h3>
+            <table>
+                <thead><tr><th>qx 值</th><th>对应画质</th><th>B站 qn</th><th>要求</th></tr></thead>
+                <tbody>
+                    <tr><td><code>4k</code></td><td>4K 超清</td><td>120</td><td>需大会员</td></tr>
+                    <tr><td><code>1080p60</code></td><td>1080P 60fps</td><td>112</td><td>需大会员</td></tr>
+                    <tr><td><code>1080p</code></td><td>1080P 高清</td><td>64</td><td>登录即可</td></tr>
+                    <tr><td><code>720p</code></td><td>720P 高清</td><td>32</td><td>—</td></tr>
+                    <tr><td><code>480p</code></td><td>480P 清晰</td><td>16</td><td>—</td></tr>
+                    <tr><td><code>360p</code></td><td>360P 流畅</td><td>8</td><td>—</td></tr>
+                </tbody>
+            </table>
+            <p>若视频本身不支持请求的清晰度，API 会按最佳→最低顺序自动回退。</p>
+
+            <h3>示例</h3>
+            <p>默认 1080P：</p>
+            <pre><code>http://your-server:14515/play?bvid=BV1GJ411x7h7&amp;token=your_token</code></pre>
+            <p>1080P60 高画质：</p>
+            <pre><code>http://your-server:14515/play?bvid=BV1GJ411x7h7&amp;token=your_token&amp;qx=1080p60</code></pre>
+            <p>从 30 秒处开始播放：</p>
+            <pre><code>http://your-server:14515/play?bvid=BV1GJ411x7h7&amp;token=your_token&amp;t=30</code></pre>
+            <p>番剧播放：</p>
+            <pre><code>http://your-server:14515/play?ep_id=ep1482617&amp;token=your_token</code></pre>
+
+            <h3>响应头</h3>
+            <table>
+                <thead><tr><th>头名称</th><th>说明</th></tr></thead>
+                <tbody>
+                    <tr><td><code>X-Content-Duration</code></td><td>视频时长（秒）</td></tr>
+                    <tr><td><code>X-Content-Title</code></td><td>视频标题（URL 编码）</td></tr>
+                    <tr><td><code>X-Stream-Id</code></td><td>流 ID，用于查询编码状态</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Info -->
+        <div class="card">
+            <h2>GET /info — 获取视频信息</h2>
+            <p>返回视频元数据（JSON 格式），包括标题、UP 主、播放量等信息。</p>
+
+            <h3>请求参数</h3>
+            <table>
+                <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
+                <tbody>
+                    <tr><td><code>bvid</code></td><td>string</td><td>是</td><td>B 站视频 BV 号</td></tr>
+                    <tr><td><code>token</code></td><td>string</td><td>是</td><td>API Token</td></tr>
+                    <tr><td><code>cid</code></td><td>int</td><td>否</td><td>指定分P cid</td></tr>
+                    <tr><td><code>page</code></td><td>int</td><td>否</td><td>分P编号 (1-indexed)</td></tr>
+                </tbody>
+            </table>
+
+            <h3>示例</h3>
+            <pre><code>http://your-server:14515/info?bvid=BV1GJ411x7h7&amp;token=thechwinlyu</code></pre>
+        </div>
+
+        <!-- Pages -->
+        <div class="card">
+            <h2>GET /pages — 获取分P列表</h2>
+            <p>返回多P视频的所有分P信息。</p>
+
+            <h3>请求参数</h3>
+            <table>
+                <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
+                <tbody>
+                    <tr><td><code>bvid</code></td><td>string</td><td>是</td><td>B 站视频 BV 号</td></tr>
+                    <tr><td><code>token</code></td><td>string</td><td>是</td><td>API Token</td></tr>
+                </tbody>
+            </table>
+
+            <h3>示例</h3>
+            <pre><code>http://your-server:14515/pages?bvid=BV1GJ411x7h7&amp;token=thechwinlyu</code></pre>
+        </div>
+
+        <!-- Qualities -->
+        <div class="card">
+            <h2>GET /qualities — 获取可用清晰度</h2>
+            <p>返回视频可用的所有清晰度选项。</p>
+
+            <h3>请求参数</h3>
+            <table>
+                <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
+                <tbody>
+                    <tr><td><code>bvid</code></td><td>string</td><td>是</td><td>B 站视频 BV 号</td></tr>
+                    <tr><td><code>token</code></td><td>string</td><td>是</td><td>API Token</td></tr>
+                    <tr><td><code>cid</code></td><td>int</td><td>否</td><td>分P cid</td></tr>
+                </tbody>
+            </table>
+
+            <h3>示例</h3>
+            <pre><code>http://your-server:14515/qualities?bvid=BV1GJ411x7h7&amp;token=thechwinlyu</code></pre>
+        </div>
+
+        <!-- Season -->
+        <div class="card">
+            <h2>GET /season — 获取剧集信息</h2>
+            <p>根据 season_id 获取番剧/剧集的所有分集信息。</p>
+
+            <h3>请求参数</h3>
+            <table>
+                <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
+                <tbody>
+                    <tr><td><code>season_id</code></td><td>string</td><td>是</td><td>剧集 season_id</td></tr>
+                    <tr><td><code>token</code></td><td>string</td><td>是</td><td>API Token</td></tr>
+                </tbody>
+            </table>
+
+            <h3>示例</h3>
+            <pre><code>http://your-server:14515/season?season_id=12345&amp;token=thechwinlyu</code></pre>
+        </div>
+
+        <!-- Episode -->
+        <div class="card">
+            <h2>GET /episode — 获取单集信息</h2>
+            <p>根据 ep_id 获取特定剧集分集的详细信息。</p>
+
+            <h3>请求参数</h3>
+            <table>
+                <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
+                <tbody>
+                    <tr><td><code>ep_id</code></td><td>string</td><td>是</td><td>剧集 ep_id</td></tr>
+                    <tr><td><code>token</code></td><td>string</td><td>是</td><td>API Token</td></tr>
+                </tbody>
+            </table>
+
+            <h3>示例</h3>
+            <pre><code>http://your-server:14515/episode?ep_id=123456&amp;token=thechwinlyu</code></pre>
+        </div>
+
+        <!-- New endpoints -->
+        <div class="card">
+            <h2>POST /api/preload — 预加载视频 <span class="new">新增</span></h2>
+            <p>预加载视频到本地缓存，后续播放将直接使用本地文件，无需从 CDN 重复下载。缓存有效期12小时。</p>
+
+            <h3>请求参数</h3>
+            <table>
+                <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
+                <tbody>
+                    <tr><td><code>bvid</code></td><td>string</td><td>是</td><td>B 站视频 BV 号（JSON body）</td></tr>
+                    <tr><td><code>qx</code></td><td>string</td><td>否</td><td>清晰度，默认 <code>1080p</code>（JSON body）</td></tr>
+                    <tr><td><code>token</code></td><td>string</td><td>是</td><td>API Token（URL 参数）</td></tr>
+                </tbody>
+            </table>
+
+            <h3>示例</h3>
+            <pre><code>POST http://your-server:14515/api/preload?token=your_token
+Content-Type: application/json
+
+{"bvid": "BV1GJ411x7h7", "qx": "1080p"}</code></pre>
+        </div>
+
+        <div class="card">
+            <h2>GET /api/cache-stats — 缓存状态 <span class="new">新增</span></h2>
+            <p>查看当前 DASH 缓存状态，包括已缓存视频的标题、封面、时长、大小、过期时间等。</p>
+
+            <h3>请求参数</h3>
+            <table>
+                <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
+                <tbody>
+                    <tr><td><code>token</code></td><td>string</td><td>是</td><td>API Token（URL 参数）</td></tr>
+                </tbody>
+            </table>
+
+            <h3>示例</h3>
+            <pre><code>http://your-server:14515/api/cache-stats?token=your_token</code></pre>
+        </div>
+
+        <div class="card">
+            <h2>DELETE /api/cache/{key} — 删除缓存 <span class="new">新增</span></h2>
+            <p>删除指定的缓存条目。key 可通过 cache-stats 接口获取。</p>
+
+            <h3>请求参数</h3>
+            <table>
+                <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
+                <tbody>
+                    <tr><td><code>key</code></td><td>string</td><td>是</td><td>缓存条目 key（URL 路径）</td></tr>
+                    <tr><td><code>token</code></td><td>string</td><td>是</td><td>API Token（URL 参数）</td></tr>
+                </tbody>
+            </table>
+
+            <h3>示例</h3>
+            <pre><code>DELETE http://your-server:14515/api/cache/abc123def456?token=your_token</code></pre>
+        </div>
+
+        <div class="card">
+            <h2>GET /api/aria2-settings — 下载线程设置 <span class="new">新增</span></h2>
+            <p>查看当前 aria2 下载线程数配置。</p>
+
+            <h3>示例</h3>
+            <pre><code>GET /api/aria2-settings</code></pre>
+
+            <h3>返回</h3>
+            <pre><code>{"connections": 32}</code></pre>
+        </div>
+
+        <div class="card">
+            <h2>POST /api/aria2-settings — 修改下载线程 <span class="new">新增</span></h2>
+            <p>修改 aria2 下载线程数（1-64）。线程越多下载越快，但会增加网络负载。</p>
+
+            <h3>请求参数</h3>
+            <table>
+                <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
+                <tbody>
+                    <tr><td><code>connections</code></td><td>int</td><td>是</td><td>线程数，范围 1-64（JSON body）</td></tr>
+                    <tr><td><code>token</code></td><td>string</td><td>是</td><td>API Token（URL 参数）</td></tr>
+                </tbody>
+            </table>
+
+            <h3>示例</h3>
+            <pre><code>POST /api/aria2-settings?token=your_token
+Content-Type: application/json
+
+{"connections": 32}</code></pre>
+        </div>
+
+        <div class="card">
+            <h2>GET /api/token-info — Token 信息 <span class="new">新增</span></h2>
+            <p>获取当前 API Token 信息（masked 版本），用于 URL 生成器。</p>
+
+            <h3>示例</h3>
+            <pre><code>GET /api/token-info</code></pre>
+
+            <h3>返回</h3>
+            <pre><code>{"token": "thechwinlyu", "masked": "thec****lyu"}</code></pre>
+        </div>
+
+        <div class="card">
+            <h2>GET /api/stream-status/{stream_id} — 流状态 <span class="new">新增</span></h2>
+            <p>获取 MP4/M3U8 编码进度。用于 Web 面板显示进度条。</p>
+
+            <h3>返回</h3>
+            <pre><code>{
+  "stream_id": "abc12345",
+  "status": "processing",
+  "progress_pct": 45.2,
+  "eta_seconds": 30
+}</code></pre>
+            <table>
+                <thead><tr><th>status 值</th><th>说明</th></tr></thead>
+                <tbody>
+                    <tr><td><code>processing</code></td><td>正在编码</td></tr>
+                    <tr><td><code>completed</code></td><td>编码完成</td></tr>
+                    <tr><td><code>not_found</code></td><td>流不存在或已过期</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Health -->
+        <div class="card">
+            <h2>GET /health — 健康检查</h2>
+            <p>无需 Token。返回服务运行状态、Cookie 状态和系统指标。</p>
+
+            <h3>示例</h3>
+            <pre><code>http://8.148.64.28:14513/health</code></pre>
+
+            <h3>返回</h3>
+            <pre><code>{
+  "status": "ok",
+  "bilibili_logged_in": true,
+  "service": "vrchat-bplayer-proxy",
+  "cookie": {
+    "logged_in": true,
+    "expires_in": "valid"
+  },
+  "system": {
+    "active_streams": 2,
+    "encoder": "AMD AMF",
+    "cpu_percent": 45.2,
+    "memory_percent": 62.1,
+    "disk_percent": 33.0,
+    "uptime_seconds": 123456
+  }
+}</code></pre>
+        </div>
+
+        <!-- Errors -->
+        <div class="card">
+            <h2>错误码</h2>
+            <table>
+                <thead><tr><th>HTTP 状态码</th><th>含义</th></tr></thead>
+                <tbody>
+                    <tr><td><code>200</code></td><td>成功</td></tr>
+                    <tr><td><code>206</code></td><td>部分内容（Range 请求）</td></tr>
+                    <tr><td><code>403</code></td><td>Token 缺失或错误</td></tr>
+                    <tr><td><code>400</code></td><td>参数错误（如 BVID 无效、视频不可用）</td></tr>
+                    <tr><td><code>503</code></td><td>未登录 B 站 或 服务器繁忙（并发超限）</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
